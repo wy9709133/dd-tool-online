@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cURL解析工具 - dd数据显示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+        
+        .response-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        textarea, input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        
+        button:hover { transform: translateY(-2px); }
+        
+        .response-container {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+        
+        .response-header {
+            background: #34495e;
+            color: white;
+            padding: 12px 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .free-order-header {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .response-content {
+            padding: 15px;
+            background: #f8f9fa;
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .free-order-content {
+            background: #f0f9f0;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card.free { border-left-color: #27ae60; }
+        
+        .copy-btn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .data-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background: white;
+            border-left: 3px solid #3498db;
+        }
+        
+        .data-item.free { border-left-color: #27ae60; background: #f0f9f0; }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .network-info {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .error-tips {
+            background: #fee;
+            border: 1px solid #e74c3c;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 dd工具</h1>
+            <p>请先解析再去发送 | 🌐 使用您自己的网络环境</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="section-title">📝 输入cURL命令</div>
+                <textarea id="curlInput" placeholder="粘贴cURL命令..." rows="8"></textarea>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="parseCurl()">🚀 解析cURL</button>
+                    <button class="btn-success" onclick="sendRequest()">📤 发送请求</button>
+                    <button class="btn-secondary" onclick="clearAll()">🗑️ 清空所有</button>
+                    <button class="btn-warning" onclick="loadExample()">📋 加载示例</button>
+                </div>
+                
+                <div class="stats" id="inputStats">
+                    <div class="stat-card">输入字符: <span id="charCount">0</span></div>
+                    <div class="stat-card">解析状态: <span id="parseStatus">等待输入</span></div>
+                    <div class="stat-card">网络状态: <span id="networkStatus">检测中...</span></div>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <div class="section-title">🔧 解析结果</div>
+                
+                <input type="text" id="urlOutput" placeholder="请求URL" readonly>
+                <textarea id="headersOutput" placeholder="请求头" rows="3" readonly></textarea>
+                <textarea id="dataOutput" placeholder="请求体数据" rows="3" readonly></textarea>
+                
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="copyAll()">📝 复制全部</button>
+                    <button class="btn-warning" onclick="analyzeData()">🔍 分析数据结构</button>
+                </div>
+            </div>
+            
+            <div class="response-section">
+                <!-- 免费订单区域 -->
+                <div class="response-column">
+                    <div class="section-title">💰 免费订单数据</div>
+                    
+                    <div class="network-info" id="networkInfo">
+                        🌐 网络信息检测中...
+                    </div>
+                    
+                    <div class="response-container">
+                        <div class="response-header free-order-header">
+                            <span>🎯 免费订单 (Free Orders)</span>
+                            <button class="copy-btn" onclick="copyFreeOrders()">复制</button>
+                        </div>
+                        <div class="response-content free-order-content" id="freeOrderContent">
+                            免费订单数据将显示在这里...
+                        </div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-card free">可用订单: <span id="availableOrders">0</span></div>
+                        <div class="stat-card free">总订单数: <span id="totalOrders">0</span></div>
+                        <div class="stat-card free">总金额: <span id="totalAmount">0</span> 元</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 网络信息检测
+        async function detectNetworkInfo() {
+            try {
+                const networkInfoEl = document.getElementById('networkInfo');
+                const networkStatusEl = document.getElementById('networkStatus');
+                
+                // 获取用户IP
+                const ipResponse = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipResponse.json();
+                
+                // 获取位置信息（简化版）
+                const locationResponse = await fetch('https://ipapi.co/json/');
+                const locationData = await locationResponse.json();
+                
+                const networkInfo = `
+🌐 您的网络信息：
+📍 IP地址: ${ipData.ip}
+🏠 位置: ${locationData.city || '未知'}, ${locationData.country_name || '未知'}
+📱 请求将直接从您的浏览器发送到目标服务器
+💡 使用您自己的网络环境，无代理中转
+                `.trim();
+                
+                networkInfoEl.innerHTML = networkInfo.replace(/\n/g, '<br>');
+                networkStatusEl.textContent = '✅ 就绪';
+                networkStatusEl.style.color = '#27ae60';
+                
+            } catch (error) {
+                console.log('网络信息检测失败:', error);
+                document.getElementById('networkInfo').innerHTML = 
+                    '🌐 网络信息: 使用您自己的本地网络环境<br>💡 请求将直接从您的浏览器发送';
+                document.getElementById('networkStatus').textContent = '✅ 就绪';
+            }
+        }
+        
+        // 解析cURL命令
+        function parseCurlCommand(curlString) {
+            const result = {
+                method: 'GET',
+                url: '',
+                headers: {},
+                data: ''
+            };
+            
+            curlString = curlString.trim();
+            
+            // 解析方法
+            const methodMatch = curlString.match(/-X\s+(GET|POST|PUT|DELETE|PATCH)/i);
+            if (methodMatch) result.method = methodMatch[1].toUpperCase();
+            else if (curlString.includes('--data') || curlString.includes('-d')) result.method = 'POST';
+            
+            // 解析URL
+            const urlRegex = /(?:curl\s+)?(?:-X\s+\w+\s+)?['"]([^'"]+)['"]|(?:curl\s+)?(https?:\/\/[^\s]+)/;
+            const urlMatch = curlString.match(urlRegex);
+            if (urlMatch) result.url = urlMatch[1] || urlMatch[2];
+            
+            // 解析Headers
+            const headerRegex = /-H\s*['"]([^'"]+)['"]/g;
+            let headerMatch;
+            while ((headerMatch = headerRegex.exec(curlString)) !== null) {
+                const headerStr = headerMatch[1];
+                const separatorIndex = headerStr.indexOf(':');
+                if (separatorIndex > -1) {
+                    const key = headerStr.substring(0, separatorIndex).trim();
+                    const value = headerStr.substring(separatorIndex + 1).trim();
+                    result.headers[key] = value;
+                }
+            }
+            
+            // 解析数据
+            const dataRegex = /--data-raw\s*['"]([^'"]+)['"]|--data\s*['"]([^'"]+)['"]|-d\s*['"]([^'"]+)['"]/;
+            const dataMatch = curlString.match(dataRegex);
+            if (dataMatch) result.data = dataMatch[1] || dataMatch[2] || dataMatch[3] || '';
+            
+            return result;
+        }
+        
+        // 分离数据
+        function separateMeituanData(responseData) {
+            const result = {
+                freeOrders: { data: null, stats: {} },
+                other: { data: null }
+            };
+            
+            try {
+                if (responseData.code === 0 && responseData.data) {
+                    const data = responseData.data;
+                    
+                    // 提取免费订单数据
+                    if (data.module_activity_list) {
+                        result.freeOrders.data = data.module_activity_list;
+                        try {
+                            const freeData = JSON.parse(data.module_activity_list.string_data);
+                            if (freeData.freeOrderRecord) {
+                                result.freeOrders.stats.total = freeData.freeOrderRecord.length;
+                                result.freeOrders.stats.available = freeData.freeOrderRecord.filter(order => order.status === 1).length;
+                                result.freeOrders.stats.totalAmount = freeData.freeOrderRecord.reduce((sum, order) => sum + (order.awardPrice / 100), 0);
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    // 其他数据
+                    result.other.data = {
+                        page_template: data.page_template,
+                        module_activity_status: data.module_activity_status,
+                        json_data: data.json_data
+                    };
+                }
+            } catch (error) {
+                console.error('数据分离错误:', error);
+            }
+            
+            return result;
+        }
+        
+        // 格式化显示数据
+        function formatDataForDisplay(data, type) {
+            if (!data) return '暂无数据';
+            
+            try {
+                if (type === 'freeOrders') {
+                    const freeData = JSON.parse(data.string_data);
+                    if (freeData.freeOrderRecord) {
+                        let output = '📋 免费订单记录:\n\n';
+                        freeData.freeOrderRecord.forEach((order, index) => {
+                            const amount = (order.awardPrice / 100).toFixed(2);
+                            const date = new Date(order.ctime).toLocaleString();
+                            const status = order.status === 1 ? '🟢 可用' : '🔴 已使用';
+                            output += `${index + 1}. 金额: ${amount}元 | 状态: ${status}\n`;
+                            output += `   时间: ${date}\n`;
+                            output += `   --------------------\n`;
+                        });
+                        return output;
+                    }
+                }
+            } catch (error) {
+                return `数据格式错误: ${error.message}`;
+            }
+            
+            return JSON.stringify(data, null, 2);
+        }
+        
+        // 主要功能函数
+        function parseCurl() {
+            const curlInput = document.getElementById('curlInput').value;
+            if (!curlInput.trim()) {
+                alert('请输入cURL命令');
+                return;
+            }
+            
+            try {
+                const result = parseCurlCommand(curlInput);
+                document.getElementById('urlOutput').value = result.url || '';
+                document.getElementById('headersOutput').value = Object.entries(result.headers)
+                    .map(([key, value]) => `${key}: ${value}`).join('\n');
+                document.getElementById('dataOutput').value = result.data || '';
+                
+                document.getElementById('parseStatus').textContent = '解析成功';
+                document.getElementById('parseStatus').style.color = '#27ae60';
+                
+            } catch (error) {
+                alert('解析失败: ' + error.message);
+            }
+        }
+        
+        async function sendRequest() {
+            const url = document.getElementById('urlOutput').value;
+            if (!url) {
+                alert('请先解析cURL命令');
+                return;
+            }
+            
+            const headersText = document.getElementById('headersOutput').value;
+            const data = document.getElementById('dataOutput').value;
+            
+            // 显示加载状态
+            const sendButton = document.querySelector('.btn-success');
+            const originalText = sendButton.innerHTML;
+            sendButton.innerHTML = '<div class="loading"></div> 发送中...';
+            sendButton.disabled = true;
+            
+            try {
+                // 转换headers
+                const headers = {};
+                headersText.split('\n').forEach(line => {
+                    if (line.trim()) {
+                        const [key, ...valueParts] = line.split(':');
+                        if (key && valueParts.length > 0) {
+                            headers[key.trim()] = valueParts.join(':').trim();
+                        }
+                    }
+                });
+                
+                console.log('🌐 使用用户本地网络发送请求...');
+                console.log('目标URL:', url);
+                console.log('请求头:', headers);
+                
+                // 直接使用fetch发送请求（使用用户自己的网络）
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: data || undefined,
+                    // 重要：让浏览器处理跨域，不使用代理
+                    credentials: 'omit'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态码: ${response.status}`);
+                }
+                
+                const responseData = await response.json();
+                
+                // 分离数据显示
+                const separatedData = separateMeituanData(responseData);
+                
+                // 更新免费订单显示
+                document.getElementById('freeOrderContent').textContent = 
+                    formatDataForDisplay(separatedData.freeOrders.data, 'freeOrders');
+                
+                // 更新统计信息
+                document.getElementById('availableOrders').textContent = separatedData.freeOrders.stats.available || 0;
+                document.getElementById('totalOrders').textContent = separatedData.freeOrders.stats.total || 0;
+                document.getElementById('totalAmount').textContent = separatedData.freeOrders.stats.totalAmount?.toFixed(2) || '0';
+                
+                showNotification('✅ 请求成功！使用您的本地网络', 'success');
+                
+            } catch (error) {
+                console.error('请求失败:', error);
+                let errorMessage = `请求失败: ${error.message}\n\n`;
+                
+                // 提供更友好的错误提示
+                if (error.message.includes('CORS') || error.message.includes('cross-origin') || error.message.includes('跨域')) {
+                    errorMessage += '🔍 跨域问题提示:\n';
+                    errorMessage += '• 目标服务器设置了跨域限制\n';
+                    errorMessage += '• 建议在本地环境运行此工具\n';
+                    errorMessage += '• 或使用浏览器扩展临时禁用CORS\n\n';
+                    errorMessage += '💡 解决方案:\n';
+                    errorMessage += '1. 下载HTML文件到本地使用\n';
+                    errorMessage += '2. 使用浏览器开发者模式启动（禁用安全限制）\n';
+                    errorMessage += '3. 安装CORS解除扩展（仅限测试）';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage += '🔍 网络连接问题:\n';
+                    errorMessage += '• 请检查网络连接\n';
+                    errorMessage += '• 目标服务器可能无法访问\n';
+                    errorMessage += '• 或存在防火墙限制';
+                }
+                
+                document.getElementById('freeOrderContent').textContent = errorMessage;
+                showNotification('❌ 请求失败', 'error');
+            } finally {
+                // 恢复按钮状态
+                sendButton.innerHTML = originalText;
+                sendButton.disabled = false;
+            }
+        }
+        
+        function analyzeData() {
+            alert('数据分析功能：\n\n✅ 自动识别免费订单\n✅ 统计关键指标\n✅ 格式化显示数据\n\n🌐 使用您的本地网络环境发送请求');
+        }
+        
+        function loadExample() {
+            const exampleCurl = `curl -X POST 'https://adapi.waimai.meituan.com/api/ad/landingPage' \\
+  -H 'User-Agent: Mozilla/5.0' \\
+  -H 'Content-Type: application/x-www-form-urlencoded' \\
+  -H 'Authorization: Bearer example_token' \\
+  -d 'notitlebar=1&future=2&scene_id=179&entry=tiantianmiandan&page_size=10'`;
+            
+            document.getElementById('curlInput').value = exampleCurl;
+            showNotification('📋 已加载示例cURL命令', 'info');
+        }
+        
+        function clearAll() {
+            document.getElementById('curlInput').value = '';
+            document.getElementById('urlOutput').value = '';
+            document.getElementById('headersOutput').value = '';
+            document.getElementById('dataOutput').value = '';
+            document.getElementById('freeOrderContent').textContent = '免费订单数据将显示在这里...';
+            
+            // 重置统计
+            ['availableOrders', 'totalOrders', 'totalAmount'].forEach(id => {
+                document.getElementById(id).textContent = '0';
+            });
+        }
+        
+        function copyFreeOrders() {
+            copyToClipboard(document.getElementById('freeOrderContent').textContent);
+            showNotification('📋 已复制免费订单数据', 'success');
+        }
+        
+        function copyAll() {
+            const url = document.getElementById('urlOutput').value;
+            const headers = document.getElementById('headersOutput').value;
+            const data = document.getElementById('dataOutput').value;
+            const content = `URL: ${url}\n\nHeaders:\n${headers}\n\nData:\n${data}`;
+            copyToClipboard(content);
+            showNotification('📝 已复制全部解析结果', 'success');
+        }
+        
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (error) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+        }
+        
+        function showNotification(message, type) {
+            // 创建临时通知
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#f39c12'};
+                color: white;
+                border-radius: 8px;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
+        }
+        
+        // 输入监听
+        document.getElementById('curlInput').addEventListener('input', function() {
+            document.getElementById('charCount').textContent = this.value.length;
+        });
+        
+        // 页面加载时检测网络信息
+        document.addEventListener('DOMContentLoaded', function() {
+            detectNetworkInfo();
+        });
+    </script>
+</body>
+</html>
